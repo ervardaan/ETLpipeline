@@ -2,7 +2,8 @@ import csv
 import pandas as pd
 from collections import Counter
 import statistics
-def etl(fileName,outputFileName):
+import sqlite3
+def etl(fileName):
     # Load CSV files
     # Process files to derive features
     # Upload processed data into a database
@@ -46,6 +47,7 @@ def etl(fileName,outputFileName):
         userAvgRuntime={}
         for (key,value) in userRunTime.items():
             userAvgRuntime[key]=value/userDict[key]
+        userCommonCompoundList=userCommonCompound
         for (key,listValue) in userCommonCompound.items():
                 mode=statistics.mode(listValue)
                 userCommonCompound[key]=mode
@@ -54,13 +56,51 @@ def etl(fileName,outputFileName):
     #         print("hello")
     # with open(fileName,newline='') as experimentFile:
     #     fileReader2=csv.reader(experimentFile,delimiter=',')
-    #     print(featuresList)
-
-    return(featuresList,userAvgRuntime,userCommonCompound)
+    #     print(featuresList)List
+    return(featuresList,userAvgRuntime,userCommonCompound,userCommonCompoundList)
 # Your API that can be called to trigger your ETL process
+def executeQueryOnDb(db, query):
+    connection=sqlite3.connect(db)
+    #create a cursor object to execute queries
+    cursor=connection.cursor()
+    cursor.execute(query)
+    fetchedData=cursor.fetchall()
+    connection.commit()#connection object makes a commit to the db
+    connection.close()
+    return(fetchedData)
+def buildInsertQueries(listOfValues):
+    ###
+    1-2,2-5,3-9
+    1-2.3,2-4.5,3-4.8
+    1-1,2-90,3-87
+    ###
+    listUsersQueries=[]
+    listUsCmpQueries=[]
+    expDict=listOfValues[0]
+    avgRunTimeDict=listOfValues[1]
+    userCmpDict=listOfValues[2]
+    userCompoundList=listOfValues[3]
+    for userid,totalExp in expDict.items():
+        avgRunTime=avgRunTimeDict[userid]
+        userCmp=userCmpDict[userid]
+        listOfCompounds=userCompoundList[userid]
+        usersInsert=f"insert into users values({userid},{totalExp},{avgRunTime},{userCmp})"
+        listUsersQueries.append(usersInsert)
+        for compound in set(listOfCompounds):
+            countCmp=listOfCompounds.count(compound)
+            usersCmpInsert=f"insert into us_cmp values({userid},{compound},{countCmp})"
+            listUsCmpQueries.append(usersCmpInsert)
+    return(listUsersQueries+listUsCmpQueries)
+        
+    
 def trigger_etl():
     # Trigger your ETL process here
-    etl("C:/Users/varda/OneDrive/Documents/COLLEGE COURSEWORK/ETLpipeline/data/user_experiments.csv","C:/Users/varda/OneDrive/Documents/COLLEGE COURSEWORK/ETLpipeline/data/users.csv")
+    listOfFeatures=etl("C:/Users/varda/OneDrive/Documents/COLLEGE COURSEWORK/ETLpipeline/data/user_experiments.csv")
+    queries=buildInsertQueries(listOfFeatures)
+    dbName="ourdb.db"
+    for query in queries:
+        executeQueryOnDb(dbName,query)
+
     return {"message": "ETL process started"}, 200
 if __name__=="__main__":
     trigger_etl()
