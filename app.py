@@ -49,12 +49,14 @@ def etl(fileName,outputFileName):
         for (key,listValue) in userCommonCompound.items():
                 mode=statistics.mode(listValue)
                 userCommonCompound[key]=mode
-        # with open(outputFileName,'w',newline='') as outputFile:
-        #     fileWriter=csv.writer(outputFile,delimiter=',')
-        #     print("hello")
-        #     for row in fileReader:
-        #         print(row)
-        return(featuresList,userAvgRuntime,userCommonCompound)
+    #     with open(outputFileName,'w',newline='') as outputFile:
+    #         fileWriter=csv.writer(outputFile,delimiter=',')
+    #         print("hello")
+    # with open(fileName,newline='') as experimentFile:
+    #     fileReader2=csv.reader(experimentFile,delimiter=',')
+    #     print(featuresList)
+
+    return(featuresList,userAvgRuntime,userCommonCompound)
 # Your API that can be called to trigger your ETL process
 def trigger_etl():
     # Trigger your ETL process here
