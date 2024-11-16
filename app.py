@@ -3,6 +3,7 @@ import pandas as pd
 from collections import Counter
 import statistics
 import sqlite3
+import os
 def etl(fileName):
     # Load CSV files
     # Process files to derive features
@@ -98,10 +99,38 @@ def trigger_etl():
     listOfFeatures=etl("C:/Users/varda/OneDrive/Documents/COLLEGE COURSEWORK/ETLpipeline/data/user_experiments.csv")
     queries=buildInsertQueries(listOfFeatures)
     dbName="ourdb.db"
+    status=setupDb(dbName)
     for query in queries:
         executeQueryOnDb(dbName,query)
-
     return {"message": "ETL process started"}, 200
+
+def setupDb(dbName):
+    """
+    if dbname nonexistent-create db+create tables using schemas
+    else-don't do anything
+        
+    """
+    if os.path.exists(dbName):
+        return(0)
+    schemaFile="initializeDB.sql"
+    schemaQueries=open(schemaFile).read()
+    schemaQueryList=schemaQueries.split(";")
+    finalList=[]
+    for q in schemaQueryList:
+        q_split = q.splitlines()
+        q_split = [item.lstrip().rstrip() for item in q_split]
+        finalList.append(" ".join(q_split))
+    for q in finalList:
+        executeQueryOnDb(dbName,q)
+    return(0)
+
+
+
+
+    
+
+
+    
 if __name__=="__main__":
     trigger_etl()
 
