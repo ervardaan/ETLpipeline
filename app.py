@@ -4,6 +4,9 @@ from collections import Counter
 import statistics
 import sqlite3
 import os
+from flask import Flask
+app=Flask(__name__)
+
 def etl(fileName):
     # Load CSV files
     # Process files to derive features
@@ -35,6 +38,7 @@ def etl(fileName):
                 userDict[userId]=userDict[userId]+1
                 userRunTime[userId]=userRunTime[userId]+runTime
                 currentList=userCommonCompound[userId]
+                assert(isinstance(currentList,list))
                 for c in compoundList:
                     currentList.append(c)
                 userCommonCompound[userId]=currentList
@@ -42,8 +46,6 @@ def etl(fileName):
                 userDict[userId]=1
                 userRunTime[userId]=runTime
                 userCommonCompound[userId]=compoundList
-        featuresList=[]
-        featuresList.append(userDict)
         #countAverageExperiments=sum(userDict.values())/len(userDict)
         userAvgRuntime={}
         for (key,value) in userRunTime.items():
@@ -52,14 +54,7 @@ def etl(fileName):
         for (key,listValue) in userCommonCompound.items():
                 mode=statistics.mode(listValue)
                 userCommonCompound[key]=mode
-    #     with open(outputFileName,'w',newline='') as outputFile:
-    #         fileWriter=csv.writer(outputFile,delimiter=',')
-    #         print("hello")
-    # with open(fileName,newline='') as experimentFile:
-    #     fileReader2=csv.reader(experimentFile,delimiter=',')
-    #     print(featuresList)List
-    return(featuresList,userAvgRuntime,userCommonCompound,userCommonCompoundList)
-# Your API that can be called to trigger your ETL process
+    return(userDict,userAvgRuntime,userCommonCompound,userCommonCompoundList)
 def executeQueryOnDb(db, query):
     connection=sqlite3.connect(db)
     #create a cursor object to execute queries
@@ -70,17 +65,22 @@ def executeQueryOnDb(db, query):
     connection.close()
     return(fetchedData)
 def buildInsertQueries(listOfValues):
-    ###
+    """
     1-2,2-5,3-9
     1-2.3,2-4.5,3-4.8
     1-1,2-90,3-87
-    ###
+    """
     listUsersQueries=[]
     listUsCmpQueries=[]
     expDict=listOfValues[0]
     avgRunTimeDict=listOfValues[1]
     userCmpDict=listOfValues[2]
     userCompoundList=listOfValues[3]
+    assert(isinstance(expDict,dict))
+    assert(isinstance(avgRunTimeDict,dict))
+    assert(isinstance(userCmpDict,dict))
+    assert(isinstance(userCompoundList,dict))
+
     for userid,totalExp in expDict.items():
         avgRunTime=avgRunTimeDict[userid]
         userCmp=userCmpDict[userid]
@@ -93,7 +93,7 @@ def buildInsertQueries(listOfValues):
             listUsCmpQueries.append(usersCmpInsert)
     return(listUsersQueries+listUsCmpQueries)
         
-    
+@app.route("/trigger_etl")   
 def trigger_etl():
     # Trigger your ETL process here
     listOfFeatures=etl("C:/Users/varda/OneDrive/Documents/COLLEGE COURSEWORK/ETLpipeline/data/user_experiments.csv")
