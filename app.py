@@ -6,6 +6,8 @@ import sqlite3
 import os
 from flask import Flask
 app=Flask(__name__)
+global dbName
+dbName="ourdb.db"
 
 def etl(fileName):
     # Load CSV files
@@ -92,13 +94,19 @@ def buildInsertQueries(listOfValues):
             usersCmpInsert=f"insert into us_cmp values({userid},{compound},{countCmp})"
             listUsCmpQueries.append(usersCmpInsert)
     return(listUsersQueries+listUsCmpQueries)
-        
+@app.get("/query/<userId>")
+def showUserData(userId):
+    fetchedData=executeQueryOnDb(dbName,f"select * from users where userid={userId}")
+    return(fetchedData)
+
+
+
 @app.route("/trigger_etl")   
 def trigger_etl():
     # Trigger your ETL process here
     listOfFeatures=etl("C:/Users/varda/OneDrive/Documents/COLLEGE COURSEWORK/ETLpipeline/data/user_experiments.csv")
     queries=buildInsertQueries(listOfFeatures)
-    dbName="ourdb.db"
+    
     status=setupDb(dbName)
     for query in queries:
         executeQueryOnDb(dbName,query)
